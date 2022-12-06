@@ -29352,6 +29352,21 @@ class SapApiController extends Controller
             }
             return 'ok';
         }
+      public function queries(request $req){
+        $data = \DB::connection('b9e46cd90a1288c7fa07e226934c8df1') 
+        ->select(DB::raw(" SELECT  OINV.CARDNAME, OINV.CARDCODE, COUNT(*) AS REPEAT, OINV.CREATEDATE, OCRD.U_BDAY, OCRD.CELLULAR
+        FROM OINV 
+        JOIN OCRD ON OINV.CARDCODE = OCRD.CARDCODE
+        WHERE OCRD.U_BDAY IS NOT NULL AND OCRD.CELLULAR IS NOT NULL AND OINV.CARDNAME IS NOT NULL
+        AND OINV.DOCSTATUS = 'C'
+        AND YEAR(OINV.CREATEDATE) >= 2019
+        GROUP BY
+        OINV.CARDNAME, OINV.CARDCODE, OINV.CREATEDATE,OCRD.U_BDAY, OCRD.CELLULAR
+        HAVING 
+        COUNT (*) > 1"));
+        return $data;
+    }
+     
         
     }
  

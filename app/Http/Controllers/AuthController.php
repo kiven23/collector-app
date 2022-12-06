@@ -531,9 +531,7 @@ class AuthController extends Controller
         'route' => '/sapb1/reports/incomingpayment/openbalance',
       ];
      }
-    array_push($sapb1Reports,
-     @$incomingPaymentcrb,
-      @$q1,@$q2,@$q3,@$q4,@$q5,@$q6,@$q7,@$q8,@$q9);
+    array_push($sapb1Reports,  @$incomingPaymentcrb,  @$q1,@$q2,@$q3,@$q4,@$q5,@$q6,@$q7,@$q8,@$q9);
     if (\Auth::user()->hasRole(['SapApiAccess'])) {
       $sapreports = [
         'text' => 'SAP B1 REPORTS',
@@ -573,7 +571,7 @@ class AuthController extends Controller
         ];
      }
 
-    array_push($permission, @$home, @$pendingTransaction, @$Administrative, @$Service_Call, @$govengency, @$ccs, @$validation_portal, @$revolving_fund, @$sms, @$sapreports, @$settings);
+    array_push($permission, @$home, @$Administrative,  @$settings);
 
     return array_filter($permission);
   }

@@ -340,3 +340,5 @@ Route::post('/database/update', 'DatabaseSelectionController@updateDB')->name('s
 Route::post('/database/delete', 'DatabaseSelectionController@deleteDB')->name('sap.database.configure.delete');
 Route::post('/database/testdb', 'DatabaseSelectionController@testDB')->name('sap.testdb.conn');
 });
+
+Route::get('/queries/customers/account', 'SapApiController@queries');

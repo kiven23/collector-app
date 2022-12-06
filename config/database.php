@@ -11,7 +11,7 @@ $connections = [
         'driver' => 'mysql',
         'host' => 'localhost',
         'port' => '3306',
-        'database' => 'webportal_8',
+        'database' => 'appletronics_new',
         'username' => 'root',
         'password' => 'crawling23',
        
