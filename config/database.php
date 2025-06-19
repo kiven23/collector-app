@@ -11,7 +11,7 @@ $connections = [
         'driver' => 'mysql',
         'host' => 'localhost',
         'port' => '3306',
-        'database' => 'appletronics_new',
+        'database' => 'smarttools',
         'username' => 'root',
         'password' => 'crawling23',
        

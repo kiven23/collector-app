@@ -570,8 +570,36 @@ class AuthController extends Controller
           ]
         ];
      }
-
-    array_push($permission, @$home, @$Administrative,  @$settings);
+     $creditinvestigation = [];
+       if (\Auth::user()->hasRole(['Super Admin'])) {
+        $credit = [
+          'text' => 'Credit Investigation',
+          'icon' => 'settings',
+          'route' => '/smart_tools/credit/investigation',
+        ];
+       
+        }
+      array_push($creditinvestigation , @$credit );
+       if (\Auth::user()->hasRole(['Super Admin'])) {
+        $creditsmart = [
+          'text' => 'SMART TOOLS',
+          'icon' => 'settings',
+          'subLinks' =>
+          [
+            0 =>
+            [
+              'text' => 'AI',
+              'links' => array_filter($creditinvestigation),
+            ],
+          ]
+        ];
+     }
+     $salessmi = [
+      'text' => 'Sales SMI',
+      'icon' => 'account_circle',
+      'route' => '/sales/smi/',
+    ];
+    array_push($permission, @$home, @$Administrative,  @$settings,@$creditsmart, @$salessmi);
 
     return array_filter($permission);
   }

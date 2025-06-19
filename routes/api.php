@@ -342,3 +342,7 @@ Route::post('/database/testdb', 'DatabaseSelectionController@testDB')->name('sap
 });
 
 Route::get('/queries/customers/account', 'SapApiController@queries');
+
+//FETCH SALEEMPLOYEE
+Route::get('/sales/smi/index', 'SalesEmployeeController@index');
+Route::get('/sales/smi/', 'SalesEmployeeController@sync');
