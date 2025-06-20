@@ -346,3 +346,5 @@ Route::get('/queries/customers/account', 'SapApiController@queries');
 //FETCH SALEEMPLOYEE
 Route::get('/sales/smi/index', 'SalesEmployeeController@index');
 Route::get('/sales/smi/', 'SalesEmployeeController@sync');
+Route::get('/sales/smi/generator', 'SalesEmployeeController@generator_master');
+Route::get('/sales/smi/branch', 'SalesEmployeeController@branch');
