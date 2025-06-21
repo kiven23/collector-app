@@ -10,6 +10,8 @@ use App\SalesQueries;
 use App\SalesEmployee;
 use App\ProductMaintenance;
 use Carbon\Carbon;
+use Excel;
+
 class SalesEmployeeController extends Controller
 {
 
@@ -118,7 +120,7 @@ class SalesEmployeeController extends Controller
           function get_sale_quota($master){
             $total = [];
             foreach ($master as $q) {
-                    $total[] = floatval($q->Amt); // make sure it's numeric
+                    $total[] = floatval($q->Amt);  
             }
             return  array_sum($total);
           }
@@ -157,36 +159,71 @@ class SalesEmployeeController extends Controller
                 return '';
             }
           }
-    #OVER KILL DATE
-//    $dataMaster = SalesEmployee::with('salesQueries')->get();
+          function searchItemBonus($item){
+            $amount = DB::table('product_maintenances')->where('model', $item)->pluck('product_bonus')->first();
+            return floatval($amount);
+          }
+          function get_product_bonus($master){
+            
+            $sum = [];
+            foreach($master as $q){
+               
+         
+                  $sum[] = searchItemBonus($q->ItemName);
+       
+            }
+            return  array_sum($sum);
+          }
+  
+      #OVER KILL DATE
+      $dataMaster = SalesEmployee::with('salesQueries')->get();
         $startDate = $req->start_date;
         $endDate =  $req->end_date;
-      $months = Carbon::parse($startDate)->diffInMonths(Carbon::parse($endDate)) +1;
-     $dataMaster = SalesEmployee::whereHas('salesQueries', function ($query) use ($startDate, $endDate) {
+        $months = Carbon::parse($startDate)->diffInMonths(Carbon::parse($endDate)) +1;
+        $dataMaster = SalesEmployee::whereHas('salesQueries', function ($query) use ($startDate, $endDate) {
             $query->whereBetween('DocDate', [$startDate, $endDate]);
         })
         ->with(['salesQueries' => function ($query) use ($startDate, $endDate) {
             $query->whereBetween('DocDate', [$startDate, $endDate]);
         }])
         //->where('employee_id', 'MIDEA-CZM-69-01')
-         //->where('brand', 'ASAHI')
+          //->where('brand', 'ASAHI')
+        ->where('branch', $req->branch)
         ->get();
     $reports = [];
-    foreach($dataMaster as $overkill){
+    if($req->q == 0){
+        foreach($dataMaster as $overkill){
+            $salesQueries = $overkill->salesQueries ?? collect(); 
+            $reports[] = ['branch'=> $overkill->branch,
+                          'employee'=> $overkill->employee, 
+                          'datehired'=>  $overkill->datehired,
+                          'brand'=>  $overkill->brand,
+                          'qouta'=> get_quota($salesQueries)  * $months  ,
+                          'sale_qouta'=> get_sale_quota($salesQueries),
+                          'sales_performance'=> get_sales_performance(get_sale_quota($salesQueries),get_quota($salesQueries) * $months) ,
+                          'peformance_assessment'=> get_sales_performance_assessment( get_sale_quota($salesQueries), get_quota($salesQueries) * $months),
+                          'recommendation'=> get_recommendation( get_sale_quota($salesQueries), get_quota($salesQueries)  * $months)
+                        ];
+            #SOLVER EXECUTION
+        }
+    }
+     
+    if($req->q == 1){
+        foreach($dataMaster as $overkill){
+            
+            $salesQueries = $overkill->salesQueries ?? collect(); 
         
-        $salesQueries = $overkill->salesQueries ?? collect(); 
-      
-        $reports[] = ['branch'=> $overkill->branch,
-                      'employee'=> $overkill->employee, 
-                      'datehired'=>  $overkill->datehired,
-                      'brand'=>  $overkill->brand,
-                      'qouta'=> get_quota($salesQueries)  * $months  ,
-                      'sale_qouta'=> get_sale_quota($salesQueries),
-                      'sales_performance'=> get_sales_performance(get_sale_quota($salesQueries),get_quota($salesQueries) * $months) ,
-                      'peformance_assessment'=> get_sales_performance_assessment( get_sale_quota($salesQueries), get_quota($salesQueries) * $months),
-                      'recommendation'=> get_recommendation( get_sale_quota($salesQueries), get_quota($salesQueries)  * $months)
-                    ];
-        #SOLVER EXECUTION
+            $reports[] = ['branch'=> $overkill->branch,
+                        'employee'=> $overkill->employee, 
+                        'datehired'=>  $overkill->datehired,
+                        'brand'=>  $overkill->brand,
+                        'qouta'=> get_quota($salesQueries)  * $months  ,
+                        'sale_qouta'=> get_sale_quota($salesQueries),
+                        'sales_performance'=> get_sales_performance(get_sale_quota($salesQueries),get_quota($salesQueries) * $months) ,
+                        'product_bonus_total'=> get_product_bonus($salesQueries),
+                        ];
+            #SOLVER EXECUTION
+        }
     }
     $data = ['period'=>$startDate.' - '.$endDate, 'reports'=>$reports];
     return response()->json($data);
@@ -198,5 +235,29 @@ class SalesEmployeeController extends Controller
         ->orderBy('Branch')
         ->get();
    }
+   public function ItemMaintenance(request $req){
+   return ProductMaintenance::all();
+   }
+   public function upload(request $req){
+
+    $csv_path = $req->file('file')->getRealPath();
+
+
+ 
+      Excel::load($csv_path, function($reader) {
+        
+         foreach($reader->toArray() as $csv){
+             $new = new ProductMaintenance;
+             $new->brand = $csv['brand'];
+             $new->model =  $csv['model'];
+             $new->product_bonus = $csv['product_bonus'];
+             $new->save();   
+         }
+       
+      });
+      return 'sync';
    
+       
+   
+   }
 }

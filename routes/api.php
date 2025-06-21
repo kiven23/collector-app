@@ -348,3 +348,6 @@ Route::get('/sales/smi/index', 'SalesEmployeeController@index');
 Route::get('/sales/smi/', 'SalesEmployeeController@sync');
 Route::get('/sales/smi/generator', 'SalesEmployeeController@generator_master');
 Route::get('/sales/smi/branch', 'SalesEmployeeController@branch');
+Route::get('/sales/smi/items', 'SalesEmployeeController@ItemMaintenance');
+Route::post('/sales/smi/upload-product-bonus', 'SalesEmployeeController@upload');
+ 
