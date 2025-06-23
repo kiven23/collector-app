@@ -103,7 +103,9 @@ class SalesEmployeeController extends Controller
     return DB::table('sales_employees')->where('Salesman', 'HAIER-CNE-52-01')->get();
    }
    public function generator_master(request $req){
-      
+    
+     
+
     #PRO CODER  
          #SOLVER QUOTA COLUMN
           function get_quota($master){
@@ -219,14 +221,94 @@ class SalesEmployeeController extends Controller
                         'brand'=>  $overkill->brand,
                         'qouta'=> get_quota($salesQueries)  * $months  ,
                         'sale_qouta'=> get_sale_quota($salesQueries),
-                        'sales_performance'=> get_sales_performance(get_sale_quota($salesQueries),get_quota($salesQueries) * $months) ,
+                        'sales_performance'=> get_sales_performance(get_sale_quota($salesQueries),get_quota($salesQueries) ) ,
                         'product_bonus_total'=> get_product_bonus($salesQueries),
                         ];
             #SOLVER EXECUTION
         }
     }
-    $data = ['period'=>$startDate.' - '.$endDate, 'reports'=>$reports];
+    usort($reports, function ($a, $b) {
+        $perfA = floatval(str_replace('%', '', $a['sales_performance']));
+        $perfB = floatval(str_replace('%', '', $b['sales_performance']));
+        return $perfB <=> $perfA;
+    });
+    $qoutaTotal = [];
+    $sale_qoutaTotal = [];
+    $sales_performanceTotal = [];
+    $product_bonus_total = [];
+    $finalData = [];
+        if($req->q == 1){
+            foreach($reports as $index=> $final){
+                $finalData [] = [
+                    'r' => $index+1,
+                    'branch' =>$final['branch'],
+                    'employee'=> $final['employee'],
+                    'datehired'=> $final['datehired'],
+                    'brand'=> $final['brand'],
+                    'qouta'=> $final['qouta'],
+                    'sale_qouta'=> $final['sale_qouta'],
+                    'sales_performance'=> $final['sales_performance'],
+                    'product_bonus_total'=> $final['product_bonus_total'],
+                    'dateto'=> $startDate . ' - ' . $endDate
+                ];
+                $qoutaTotal[] = $final['qouta']; 
+                $sale_qoutaTotal[] = $final['sale_qouta'];
+                $sales_performanceTotal[] = $final['sales_performance'];
+                $product_bonus_total[] = $final['product_bonus_total'];
+            }
+       
+            $finalData[] = [
+                'r' => '',
+                'branch' =>'',
+                'employee'=> 'GRAND TOTAL',
+                'datehired'=> '',
+                'brand'=> '',
+                'qouta'=> array_sum($qoutaTotal),
+                'sale_qouta'=> array_sum($sale_qoutaTotal) ,
+                'sales_performance'=> get_sales_performance( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal))  ,
+                'product_bonus_total'=> array_sum($product_bonus_total),
+                'recommendation'=> '',
+                'dateto'=> $startDate . ' - ' . $endDate
+            ];
+        }else{
+            foreach($reports as $index=> $final){
+                $finalData [] = [
+                    'r' => $index+1,
+                    'branch' =>$final['branch'],
+                    'employee'=> $final['employee'],
+                    'datehired'=> $final['datehired'],
+                    'brand'=> $final['brand'],
+                    'qouta'=> $final['qouta'],
+                    'sale_qouta'=> $final['sale_qouta'],
+                    'sales_performance'=> $final['sales_performance'],
+                    'peformance_assessment'=> $final['peformance_assessment'],
+                    'recommendation'=> $final['recommendation'],
+                    'dateto'=> $startDate . ' - ' . $endDate
+                ];
+                $qoutaTotal[] = $final['qouta']; 
+                $sale_qoutaTotal[] = $final['sale_qouta'];
+                $sales_performanceTotal[] = $final['sales_performance'];
+                
+            }
+       
+            $finalData[] = [
+                'r' => '',
+                'branch' =>'',
+                'employee'=> 'GRAND TOTAL',
+                'datehired'=> '',
+                'brand'=> '',
+                'qouta'=> array_sum($qoutaTotal),
+                'sale_qouta'=> array_sum($sale_qoutaTotal) ,
+                'sales_performance'=> get_sales_performance( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal) )  ,
+                'peformance_assessment'=>  get_sales_performance_assessment( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal)),
+                'recommendation'=> '',
+                'dateto'=> $startDate . ' - ' . $endDate
+            ];
+        }
+    
+    $data = ['period' => $startDate . ' - ' . $endDate, 'reports' => $finalData];
     return response()->json($data);
+    
    }
    public function Branch(request $req){
         return DB::table('sales_queries')
@@ -243,9 +325,9 @@ class SalesEmployeeController extends Controller
     $csv_path = $req->file('file')->getRealPath();
 
 
- 
+     ProductMaintenance::truncate();
       Excel::load($csv_path, function($reader) {
-        
+         
          foreach($reader->toArray() as $csv){
              $new = new ProductMaintenance;
              $new->brand = $csv['brand'];
@@ -257,7 +339,14 @@ class SalesEmployeeController extends Controller
       });
       return 'sync';
    
-       
-   
+   }
+   public function salelist(request $req){
+     function getData($data){
+        return DB::table('sales_queries')->where('Salesman', $data);
+     }
+     return getData($req->data)->select('DocDate','ItemCode','ItemName','Brand','Supplier','Amt')->get();
+   }
+   public function generateReports(request $req){
+    return $req;
    }
 }

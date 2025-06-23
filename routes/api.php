@@ -350,4 +350,5 @@ Route::get('/sales/smi/generator', 'SalesEmployeeController@generator_master');
 Route::get('/sales/smi/branch', 'SalesEmployeeController@branch');
 Route::get('/sales/smi/items', 'SalesEmployeeController@ItemMaintenance');
 Route::post('/sales/smi/upload-product-bonus', 'SalesEmployeeController@upload');
- 
+Route::get('/sales/smi/sale/list', 'SalesEmployeeController@salelist');
+Route::get('/sales/smi/sale/generate', 'SalesEmployeeController@generateReports');
