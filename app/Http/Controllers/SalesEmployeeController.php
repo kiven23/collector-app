@@ -104,94 +104,40 @@ class SalesEmployeeController extends Controller
    }
    public function generator_master(request $req){
     
+      
      
-
-    #PRO CODER  
-         #SOLVER QUOTA COLUMN
-          function get_quota($master){
-            $sum = [];
-            foreach($master as $q){
-               
-         
-                  $sum[] = $q->Quota;
-       
-            }
-            return  $sum[0];
-          }
-          #SOLVER SALES AMNT COLUMN
-          function get_sale_quota($master){
-            $total = [];
-            foreach ($master as $q) {
-                    $total[] = floatval($q->Amt);  
-            }
-            return  array_sum($total);
-          }
-          #SOLVER SALES PERFOMANCE
-          function get_sales_performance($amt,$quota){
-           return round($amt / $quota * 100,2) . '%';
-          }
-          function calculate($c){
-            
-            if ($c > 100) {
-                return 'EXCELLENT';
-            } elseif ($c >= 90 && $c <= 100) {
-                return 'VERY GOOD';
-            } elseif ($c >= 80 && $c < 90) {
-                return 'GOOD';
-            } elseif ($c >= 70 && $c < 80) {
-                return 'FAIR';
-            } else {
-                return 'POOR';
-            }
-           }
-          #SOLVER PERFORMANCE ASSESSMENT
-          function get_sales_performance_assessment($amt,$quota){
-               
-            $performance = calculate(round($amt / $quota * 100));
-            return  $performance;
-          }
-          #SOLVER RECOMMENDATION
-          function get_recommendation($amt, $quota){
-            $c = round($amt / $quota * 100);
-            if ($c < 40) {
-                return 'FOR REPLACEMENT';
-            } elseif ($c >= 40 && $c <= 70) {
-                return 'WRITTEN MEMO + TRAINING';
-            }else{
-                return '';
-            }
-          }
-          function searchItemBonus($item){
-            $amount = DB::table('product_maintenances')->where('model', $item)->pluck('product_bonus')->first();
-            return floatval($amount);
-          }
-          function get_product_bonus($master){
-            
-            $sum = [];
-            foreach($master as $q){
-               
-         
-                  $sum[] = searchItemBonus($q->ItemName);
-       
-            }
-            return  array_sum($sum);
-          }
-  
-      #OVER KILL DATE
-      $dataMaster = SalesEmployee::with('salesQueries')->get();
-        $startDate = $req->start_date;
-        $endDate =  $req->end_date;
-        $months = Carbon::parse($startDate)->diffInMonths(Carbon::parse($endDate)) +1;
-        $dataMaster = SalesEmployee::whereHas('salesQueries', function ($query) use ($startDate, $endDate) {
-            $query->whereBetween('DocDate', [$startDate, $endDate]);
-        })
-        ->with(['salesQueries' => function ($query) use ($startDate, $endDate) {
-            $query->whereBetween('DocDate', [$startDate, $endDate]);
-        }])
-        //->where('employee_id', 'MIDEA-CZM-69-01')
-          //->where('brand', 'ASAHI')
-        ->where('branch', $req->branch)
-        ->get();
+   
+      ## DATE MASTER
+      $startDate = $req->start_date;
+      $endDate =  $req->end_date;
+      ### GRAPH 
+      if($req->identify == 'xyz'){
+            $months = Carbon::parse($startDate)->diffInMonths(Carbon::parse($endDate)) +1;
+            $dataMaster = SalesEmployee::whereHas('salesQueries', function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('DocDate', [$startDate, $endDate]);
+            })
+            ->with(['salesQueries' => function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('DocDate', [$startDate, $endDate]);
+            }])
+            ->where('branch', $req->branch)
+            ->get();
+      
+      }else{
+            #OVER KILL DATE
+            $dataMaster = SalesEmployee::with('salesQueries')->get();
+             
+            $months = Carbon::parse($startDate)->diffInMonths(Carbon::parse($endDate)) +1;
+            $dataMaster = SalesEmployee::whereHas('salesQueries', function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('DocDate', [$startDate, $endDate]);
+            })
+            ->with(['salesQueries' => function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('DocDate', [$startDate, $endDate]);
+            }])
+            ->when($req->branch !== 'ALL', function ($query) use ($req) {
+                return $query->where('branch', $req->branch);
+            }) 
+            ->get();
+      }
     $reports = [];
     if($req->q == 0){
         foreach($dataMaster as $overkill){
@@ -200,29 +146,26 @@ class SalesEmployeeController extends Controller
                           'employee'=> $overkill->employee, 
                           'datehired'=>  $overkill->datehired,
                           'brand'=>  $overkill->brand,
-                          'qouta'=> get_quota($salesQueries)  * $months  ,
-                          'sale_qouta'=> get_sale_quota($salesQueries),
-                          'sales_performance'=> get_sales_performance(get_sale_quota($salesQueries),get_quota($salesQueries) * $months) ,
-                          'peformance_assessment'=> get_sales_performance_assessment( get_sale_quota($salesQueries), get_quota($salesQueries) * $months),
-                          'recommendation'=> get_recommendation( get_sale_quota($salesQueries), get_quota($salesQueries)  * $months)
+                          'qouta'=> $this->get_quota($salesQueries)  * $months  ,
+                          'sale_qouta'=> $this->get_sale_quota($salesQueries),
+                          'sales_performance'=> $this->get_sales_performance($this->get_sale_quota($salesQueries),$this->get_quota($salesQueries) * $months) ,
+                          'peformance_assessment'=> $this->get_sales_performance_assessment( $this->get_sale_quota($salesQueries), $this->get_quota($salesQueries) * $months),
+                          'recommendation'=> $this->get_recommendation($this->get_sale_quota($salesQueries), $this->get_quota($salesQueries)  * $months)
                         ];
             #SOLVER EXECUTION
         }
     }
-     
     if($req->q == 1){
         foreach($dataMaster as $overkill){
-            
             $salesQueries = $overkill->salesQueries ?? collect(); 
-        
             $reports[] = ['branch'=> $overkill->branch,
-                        'employee'=> $overkill->employee, 
-                        'datehired'=>  $overkill->datehired,
-                        'brand'=>  $overkill->brand,
-                        'qouta'=> get_quota($salesQueries)  * $months  ,
-                        'sale_qouta'=> get_sale_quota($salesQueries),
-                        'sales_performance'=> get_sales_performance(get_sale_quota($salesQueries),get_quota($salesQueries) ) ,
-                        'product_bonus_total'=> get_product_bonus($salesQueries),
+                          'employee'=> $overkill->employee, 
+                          'datehired'=>  $overkill->datehired,
+                          'brand'=>  $overkill->brand,
+                          'qouta'=> $this->get_quota($salesQueries)  * $months  ,
+                          'sale_qouta'=> $this->get_sale_quota($salesQueries),
+                          'sales_performance'=> $this->get_sales_performance($this->get_sale_quota($salesQueries),$this->get_quota($salesQueries) ) ,
+                          'product_bonus_total'=> $this->get_product_bonus($salesQueries),
                         ];
             #SOLVER EXECUTION
         }
@@ -256,18 +199,17 @@ class SalesEmployeeController extends Controller
                 $sales_performanceTotal[] = $final['sales_performance'];
                 $product_bonus_total[] = $final['product_bonus_total'];
             }
-       
             $finalData[] = [
-                'r' => '',
-                'branch' =>'',
+                'r' => '#',
+                'branch' =>'#',
                 'employee'=> 'GRAND TOTAL',
-                'datehired'=> '',
-                'brand'=> '',
+                'datehired'=> '#',
+                'brand'=> '#',
                 'qouta'=> array_sum($qoutaTotal),
                 'sale_qouta'=> array_sum($sale_qoutaTotal) ,
-                'sales_performance'=> get_sales_performance( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal))  ,
+                'sales_performance'=> $this->get_sales_performance( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal))  ,
                 'product_bonus_total'=> array_sum($product_bonus_total),
-                'recommendation'=> '',
+                'recommendation'=> '#',
                 'dateto'=> $startDate . ' - ' . $endDate
             ];
         }else{
@@ -288,27 +230,46 @@ class SalesEmployeeController extends Controller
                 $qoutaTotal[] = $final['qouta']; 
                 $sale_qoutaTotal[] = $final['sale_qouta'];
                 $sales_performanceTotal[] = $final['sales_performance'];
-                
             }
-       
             $finalData[] = [
-                'r' => '',
-                'branch' =>'',
+                'r' => '#',
+                'branch' =>'#',
                 'employee'=> 'GRAND TOTAL',
-                'datehired'=> '',
-                'brand'=> '',
+                'datehired'=> '#',
+                'brand'=> '#',
                 'qouta'=> array_sum($qoutaTotal),
                 'sale_qouta'=> array_sum($sale_qoutaTotal) ,
-                'sales_performance'=> get_sales_performance( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal) )  ,
-                'peformance_assessment'=>  get_sales_performance_assessment( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal)),
-                'recommendation'=> '',
+                'sales_performance'=> $this->get_sales_performance( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal) )  ,
+                'peformance_assessment'=>  $this->get_sales_performance_assessment( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal)),
+                'recommendation'=> '#',
                 'dateto'=> $startDate . ' - ' . $endDate
             ];
         }
     
-    $data = ['period' => $startDate . ' - ' . $endDate, 'reports' => $finalData];
-    return response()->json($data);
+    ######## MATIC SA GRAPH #####
+    if($req->identify == 'xyz'){
+        return $this->get_sales_performance( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal) );
+    }else{
+        $response = $this->generateReports(  $finalData, $req->q);
     
+    ######## REPORTS GENERATION HERE #########################
+        
+
+            if (isset($response['download_url'])) {
+                $downloadUrl = $response['download_url']; 
+                $filename = $response['filename'];
+            } else {
+                Log::error('Download URL not found', ['response' => $response]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $response['message'] ?? 'Unexpected error during report generation.'
+                ], 500);
+            }
+        ###->>next data here ->> na steven
+    ####### END REPORTS GENERATION ##########################
+    $data = ['period' => $startDate . ' - ' . $endDate, 'reports' => $finalData, 'download_link'=> $downloadUrl, 'filename'=> $filename ];
+    return response()->json($data);
+}
    }
    public function Branch(request $req){
         return DB::table('sales_queries')
@@ -346,7 +307,138 @@ class SalesEmployeeController extends Controller
      }
      return getData($req->data)->select('DocDate','ItemCode','ItemName','Brand','Supplier','Amt')->get();
    }
-   public function generateReports(request $req){
-    return $req;
+   private function generateReports($reports,$type){
+    
+    $client = new Client(['timeout' => 300000]);
+    $response = $client->post('http://192.168.200.11:8004/api/reports/crystal/sales/generator?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJleHAiOjIwNTc3MjQ3NDd9.0F5ZFHigMNt732EHIFd7azram_PWHIC5RGkkz8wqEz8&type='.$type, [
+        'headers' => ['Content-Type' => 'application/json'],
+        'body' => json_encode($reports),
+    ]);
+    $body = $response->getBody()->getContents();
+    return json_decode($body, true);
    }
+    #PRO CODER  
+         #SOLVER QUOTA COLUMN
+       private  function get_quota($master){
+            $sum = [];
+            foreach($master as $q){
+                  $sum[] = $q->Quota;
+            }
+            return  $sum[0];
+          }
+          #SOLVER SALES AMNT COLUMN
+          private  function get_sale_quota($master){
+            $total = [];
+            foreach ($master as $q) {
+                    $total[] = floatval($q->Amt);  
+            }
+            return  array_sum($total);
+          }
+          #SOLVER SALES PERFOMANCE
+          private    function get_sales_performance($amt,$quota){
+            if ($quota == 0) {
+                return '0.00%'; // Or 'N/A' kung gusto mo ipakita na walang quota
+            }
+            if ($amt == 0) {
+                return '0.00%'; // Or 'N/A' kung gusto mo ipakita na walang quota
+            }
+            return round(($amt / $quota) * 100, 2) . '%';
+          }
+          private   function calculate($c){
+            
+            if ($c > 100) {
+                return 'EXCELLENT';
+            } elseif ($c >= 90 && $c <= 100) {
+                return 'VERY GOOD';
+            } elseif ($c >= 80 && $c < 90) {
+                return 'GOOD';
+            } elseif ($c >= 70 && $c < 80) {
+                return 'FAIR';
+            } else {
+                return 'POOR';
+            }
+           }
+          #SOLVER PERFORMANCE ASSESSMENT
+          private   function get_sales_performance_assessment($amt,$quota){
+            if ($quota == 0) {
+                return '0.00%'; // Or 'N/A' kung gusto mo ipakita na walang quota
+            }
+            if ($amt == 0) {
+                return '0.00%'; // Or 'N/A' kung gusto mo ipakita na walang quota
+            }
+            $performance = $this->calculate(round($amt / $quota * 100));
+            return  $performance;
+          }
+          #SOLVER RECOMMENDATION
+          private   function get_recommendation($amt, $quota){
+            $c = round($amt / $quota * 100);
+            if ($c < 40) {
+                return 'FOR REPLACEMENT';
+            } elseif ($c >= 40 && $c <= 70) {
+                return 'WRITTEN MEMO + TRAINING';
+            }else{
+                return '';
+            }
+          }
+          private   function searchItemBonus($item){
+            $amount = DB::table('product_maintenances')->where('model', $item)->pluck('product_bonus')->first();
+            return floatval($amount);
+          }
+          private   function get_product_bonus($master){
+            
+            $sum = [];
+            foreach($master as $q){
+                  $sum[] = $this->searchItemBonus($q->ItemName);
+            }
+            return  array_sum($sum);
+          }
+   private function graph($branch, $controllerInstance) {
+    $startDate = Carbon::parse('2025-01-01');
+    $endDate = Carbon::now();
+    $quarters = [];
+    $current = $startDate->copy();
+
+    while ($current->lte($endDate)) {
+        $start = $current->copy();
+        $end = $start->copy()->addMonths(3)->subDay();
+        if ($end->gt($endDate)) {
+            $end = $endDate->copy();
+        }
+
+        $dd = new Request([
+            'type' => 0,
+            'start_date' =>  $start->toDateString(),
+            'end_date' =>  $end->toDateString(),
+            'branch' => $branch,
+            'identify' => 'xyz'
+        ]);
+
+        $quarters[] = [
+            'start' => $start->toDateString(),
+            'end' => $end->toDateString(),
+            'label' => 'Q' . ceil($start->month / 3) . ' ' . $start->year,
+            'branch' => $branch,
+            'solver' =>  $controllerInstance->generator_master($dd) // ✅ now this works!
+        ];
+
+        $current = $current->copy()->addMonths(3);
+    }
+
+    return $quarters;
+  }
+
+  public function dashboardgraph(Request $req) {
+    $branch = DB::table('sales_queries')
+        ->select('Branch')
+        ->distinct()
+        ->orderBy('Branch')
+        ->take(10)->get();
+
+    foreach ($branch as $b) {
+        $d[] = $this->graph($b->Branch, $this); // pass $this as controller instance
+    }
+
+    return $d;
+   } 
+ 
 }
