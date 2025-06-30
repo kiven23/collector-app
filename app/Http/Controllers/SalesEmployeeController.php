@@ -11,7 +11,7 @@ use App\SalesEmployee;
 use App\ProductMaintenance;
 use Carbon\Carbon;
 use Excel;
-
+use App\User;
 class SalesEmployeeController extends Controller
 {
 
@@ -426,19 +426,105 @@ class SalesEmployeeController extends Controller
 
     return $quarters;
   }
-
+  private function perbranchgraph($branch){
+ 
+    return [ $this->graph($branch, $this)];
+      
+  }
   public function dashboardgraph(Request $req) {
-    $branch = DB::table('sales_queries')
-        ->select('Branch')
-        ->distinct()
-        ->orderBy('Branch')
-        ->take(10)->get();
-
-    foreach ($branch as $b) {
-        $d[] = $this->graph($b->Branch, $this); // pass $this as controller instance
+    function generateGraph($logs, $branch) {
+        $client = new Client(['timeout' => 9999999]);
+    
+        $response = $client->post('http://192.168.200.11:8004/api/generate/global', [
+            'headers' => ['Accept' => 'application/json'],
+            'json' => [  // not 'body' or 'form_params'
+                'branch' => $branch,
+                'data' => $logs  // remove json_encode — Guzzle will do it
+            ]
+        ]);
+    
+        $body = $response->getBody()->getContents();
+        return json_decode($body, true);
     }
+    
+     $branch = DB::table('sales_queries')
+    ->select('Branch')
+    ->distinct()
+    ->orderBy('Branch')
+    ->take(80)->get();
+      
+ 
+    if($req->all == 0){
+        foreach ($branch as $b) {
+            $d[] = $this->perbranchgraph($b->Branch, $this); // pass $this as controller instance
+        }
+        foreach($d as $i){
+           $info [] = generateGraph($i, $i[0][0]['branch']);
+        }
+         
+         foreach($info as $d){
+            $data[] = DB::table('branches')
+                     ->where('name', $d['branch'])
+                     ->update(["graph"=> $d['download_url'] ]);
+             
+         }
+         return $data;
 
-    return $d;
+    }
+    
+    if($req->all == 1){
+        foreach ($branch as $b) {
+            $d[] = $this->graph($b->Branch, $this); // pass $this as controller instance
+        }
+        return generateGraph($d,'ALL');
+    }
+     
    } 
+   public function createuser(request $req){
+
+     $user = DB::table('sales_queries')
+    ->select('PromoName', DB::raw('MIN(Branch) as Branch'))
+    ->groupBy('PromoName')
+    ->orderBy('PromoName')
+    ->get();
+    
+
+
+    foreach($user as $dd){
+        $xxpo = explode(' ',$dd->PromoName);
+        $users_pass[] = ['count'=> count($xxpo), 'name'=>$dd->PromoName ]  	;
+
+        if(count($xxpo) == 2){
+            $datas [] = ['first_name' => $xxpo[0],
+                         'last_name' =>$xxpo[1] , 'fullname'=>$dd->PromoName ,'email'=> $xxpo[1].'_'.$xxpo[0].'@salesedge.addessa.com'];
+        }
+        if(count($xxpo) == 3){
+            $datas [] = ['first_name' => $xxpo[0].' '.$xxpo[1],
+                         'last_name' =>$xxpo[2], 'fullname'=>$dd->PromoName ,'email'=> $xxpo[0].'_'.$xxpo[2].'@salesedge.addessa.com'];
+        }
+        if(count($xxpo) == 4){
+            $datas [] = ['first_name' => $xxpo[0].' '.$xxpo[1],
+                         'last_name' =>$xxpo[3] , 'fullname'=>$dd->PromoName,'email'=> $xxpo[0].'_'.$xxpo[3].'@salesedge.addessa.com'];
+        }
+
+    }
+       return $datas;
+    // if ($req->password) { 
+    //     $password = bcrypt($req->password);
+    //   } else { $password = bcrypt('123$qweR'); }
+
+    	$user = new User;
+        $user->first_name = $req->first_name;
+        $user->last_name = $req->last_name;
+    	$user->branch_id = $req->branch;
+    	$user->email = $req->email;
+    	$user->password = $password;
+    	$user->save();
+
+        // foreach($req){
+
+        // }
+   }
+
  
 }

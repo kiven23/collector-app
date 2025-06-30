@@ -599,7 +599,9 @@ class AuthController extends Controller
       'icon' => 'account_circle',
       'route' => '/sales/smi/',
     ];
-    array_push($permission, @$home, @$Administrative,  @$settings,@$creditsmart, @$salessmi);
+
+    //@$creditsmart
+    array_push($permission, @$home, @$Administrative,  @$settings, @$salessmi);
 
     return array_filter($permission);
   }

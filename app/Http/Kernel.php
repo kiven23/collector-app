@@ -190,5 +190,8 @@ class Kernel extends HttpKernel
 
          // Settings
          'settings' => \App\Http\Middleware\Settings::class,
+
+          // Settings
+          'sale_edge' => \App\Http\Middleware\SalesEdge::class,
     ];
 }
