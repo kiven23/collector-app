@@ -97,6 +97,7 @@ class SalesEmployeeController extends Controller
     return $data;
    }
    public function index(request $req){
+       return \Auth::user()->branch_id;
         return DB::table('sales_employees')->where('employee_id', 'HAIER-CNE-52-01')->paginate(request()->get('per_page', 10));;
    }
    public function employee_get(request $req){
@@ -482,45 +483,64 @@ class SalesEmployeeController extends Controller
    } 
    public function createuser(request $req){
 
-     $user = DB::table('sales_queries')
+      $user = DB::table('sales_queries')
     ->select('PromoName', DB::raw('MIN(Branch) as Branch'))
     ->groupBy('PromoName')
     ->orderBy('PromoName')
-    ->get();
-    
+     ->get();
+    function checkbranch($branch){
+         return DB::table('branches')->where('name', $branch)->pluck('id')->first();
+    }
 
 
-    foreach($user as $dd){
+    foreach($user as $index=> $dd){
         $xxpo = explode(' ',$dd->PromoName);
         $users_pass[] = ['count'=> count($xxpo), 'name'=>$dd->PromoName ]  	;
 
         if(count($xxpo) == 2){
             $datas [] = ['first_name' => $xxpo[0],
-                         'last_name' =>$xxpo[1] , 'fullname'=>$dd->PromoName ,'email'=> $xxpo[1].'_'.$xxpo[0].'@salesedge.addessa.com'];
+                         'last_name' =>$xxpo[1] ,
+                         'fullname'=>$dd->PromoName ,
+                         'email'=> $xxpo[1].$index.'_'.$xxpo[0].'@salesedge.addessa.com',
+                         'branch_id'=> checkbranch($dd->Branch),
+                         'password'=> '123$qweR'];
         }
         if(count($xxpo) == 3){
             $datas [] = ['first_name' => $xxpo[0].' '.$xxpo[1],
-                         'last_name' =>$xxpo[2], 'fullname'=>$dd->PromoName ,'email'=> $xxpo[0].'_'.$xxpo[2].'@salesedge.addessa.com'];
+                         'last_name' =>$xxpo[2],
+                         'fullname'=>$dd->PromoName ,
+                         'email'=> $xxpo[0].$index.'_'.$xxpo[2].'@salesedge.addessa.com',
+                         'branch_id'=> checkbranch($dd->Branch),
+                         'password'=> '123$qweR'];
         }
         if(count($xxpo) == 4){
             $datas [] = ['first_name' => $xxpo[0].' '.$xxpo[1],
-                         'last_name' =>$xxpo[3] , 'fullname'=>$dd->PromoName,'email'=> $xxpo[0].'_'.$xxpo[3].'@salesedge.addessa.com'];
+                         'last_name' =>$xxpo[3] , 'fullname'=>$dd->PromoName,
+                         'fullname'=>$dd->PromoName ,
+                         'email'=> $xxpo[0].$index.'_'.$xxpo[3].'@salesedge.addessa.com',
+                         'branch_id'=> checkbranch($dd->Branch),
+                         'password'=> '123$qweR'];
         }
 
     }
-       return $datas;
+    
     // if ($req->password) { 
     //     $password = bcrypt($req->password);
     //   } else { $password = bcrypt('123$qweR'); }
-
-    	$user = new User;
-        $user->first_name = $req->first_name;
-        $user->last_name = $req->last_name;
-    	$user->branch_id = $req->branch;
-    	$user->email = $req->email;
-    	$user->password = $password;
+     foreach( $datas as $index => $d){
+        $ddd[$index] = 'ok';
+        $user = new User;
+        $user->first_name = $d['first_name'];
+        $user->last_name = $d['last_name'];
+    	$user->branch_id = $d['branch_id'];
+        $user->fullname = $d['fullname'];
+    	$user->email = $d['email'];
+    	$user->password = bcrypt($d['password']);
     	$user->save();
-
+        $user->roles()->sync([83]);  
+     }
+    	 return $ddd;
+     
         // foreach($req){
 
         // }
