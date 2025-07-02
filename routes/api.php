@@ -354,6 +354,6 @@ Route::get('/sales/smi/sale/list', 'SalesEmployeeController@salelist');
 Route::get('/sales/smi/sale/generate', 'SalesEmployeeController@generateReports');
 
 Route::get('/sales/smi/dashboard/generate', 'SalesEmployeeController@dashboardgraph');
-
+Route::get('/sales/smi/graph', 'SalesEmployeeController@getGraph');
 //TEMPORARY
 Route::get('/sales/smi/dashboard/createuser', 'SalesEmployeeController@createuser');

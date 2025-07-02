@@ -594,14 +594,15 @@ class AuthController extends Controller
           ]
         ];
      }
+     if (\Auth::user()->hasRole(['Super Admin','Sales Branches Access','Sales Admin'])) {
      $salessmi = [
       'text' => 'Sales SMI',
       'icon' => 'account_circle',
       'route' => '/sales/smi/',
     ];
-
+     }
     //@$creditsmart
-    array_push($permission, @$home, @$Administrative,  @$settings, @$salessmi);
+    array_push($permission, @$Administrative,  @$settings, @$salessmi);
 
     return array_filter($permission);
   }

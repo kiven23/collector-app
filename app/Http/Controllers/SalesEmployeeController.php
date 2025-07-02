@@ -97,11 +97,19 @@ class SalesEmployeeController extends Controller
     return $data;
    }
    public function index(request $req){
-       return \Auth::user()->branch_id;
-        return DB::table('sales_employees')->where('employee_id', 'HAIER-CNE-52-01')->paginate(request()->get('per_page', 10));;
+    if (\Auth::user()->hasRole(['Super Admin', 'Sales Admin'])) {
+    
+        return DB::table('sales_employees') ->paginate(request()->get('per_page', 10));
+    }
+    else{
+        $branch = DB::table('branches')->where('id',  \Auth::user()->branch_id)->pluck('name')->first();
+        $fullname = \Auth::user()->fullname;
+        return DB::table('sales_employees')->where('branch',  $branch)->where('employee',  $fullname)->paginate(request()->get('per_page', 10));;
+    }
+         
    }
    public function employee_get(request $req){
-    return DB::table('sales_employees')->where('Salesman', 'HAIER-CNE-52-01')->get();
+    return DB::table('sales_employees')->where('Salesman', 'HAIER-CNE-d-01')->get();
    }
    public function generator_master(request $req){
     
@@ -124,9 +132,10 @@ class SalesEmployeeController extends Controller
             ->get();
       
       }else{
+      
             #OVER KILL DATE
-            $dataMaster = SalesEmployee::with('salesQueries')->get();
-             
+            #$dataMaster = SalesEmployee::with('salesQueries')->get();
+            $user = \Auth::user()->fullname;
             $months = Carbon::parse($startDate)->diffInMonths(Carbon::parse($endDate)) +1;
             $dataMaster = SalesEmployee::whereHas('salesQueries', function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('DocDate', [$startDate, $endDate]);
@@ -137,6 +146,9 @@ class SalesEmployeeController extends Controller
             ->when($req->branch !== 'ALL', function ($query) use ($req) {
                 return $query->where('branch', $req->branch);
             }) 
+            ->when(\Auth::user()->hasRole(['Sales Branches Access']), function ($q) use ( $user){
+                return $q->where('employee', $user );
+            })
             ->get();
       }
     $reports = [];
@@ -273,11 +285,26 @@ class SalesEmployeeController extends Controller
 }
    }
    public function Branch(request $req){
-        return DB::table('sales_queries')
-        ->select('Branch')
-        ->distinct()
-        ->orderBy('Branch')
-        ->get();
+        $branch = DB::table('branches')->where('id',  \Auth::user()->branch_id)->pluck('name')->first();
+        if (\Auth::user()->hasRole(['Super Admin', 'Sales Admin'])) {
+            $data = DB::table('sales_queries')
+                ->select('Branch')
+                ->distinct()
+                ->orderBy('Branch')
+                ->get();
+        
+            // Convert to collection and push properly
+            $data->push((object)['Branch' => 'ALL']);
+        } else {
+            $data = DB::table('sales_queries')
+                ->select('Branch')
+                ->distinct()
+                ->where('Branch', $branch)
+                ->orderBy('Branch')
+                ->get();
+        }
+        
+        return $data;
    }
    public function ItemMaintenance(request $req){
    return ProductMaintenance::all();
@@ -481,6 +508,9 @@ class SalesEmployeeController extends Controller
     }
      
    } 
+   public function getGraph(request $req){
+    return DB::table('branches')->where('id', \Auth::User()->branch_id)->pluck('graph')->first();
+   }
    public function createuser(request $req){
 
       $user = DB::table('sales_queries')
