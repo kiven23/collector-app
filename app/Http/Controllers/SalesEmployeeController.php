@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use GuzzleHttp\Client;
@@ -263,8 +263,9 @@ class SalesEmployeeController extends Controller
     if($req->identify == 'xyz'){
         return $this->get_sales_performance( array_sum($sale_qoutaTotal) ,array_sum($qoutaTotal) );
     }else{
-        $response = $this->generateReports(  $finalData, $req->q);
-    
+        $response = $this->generateReports(  $finalData, $req->q, $req->branch);
+        $track_id = $req->branch.$startDate.$endDate;
+        DB::table('reports_temp')->insert(['track_id'=> $track_id, 'json_data'=> json_encode($finalData)  ]);
     ######## REPORTS GENERATION HERE #########################
         
 
@@ -335,10 +336,10 @@ class SalesEmployeeController extends Controller
      }
      return getData($req->data)->select('DocDate','ItemCode','ItemName','Brand','Supplier','Amt')->get();
    }
-   private function generateReports($reports,$type){
+   private function generateReports($reports,$type,$branch){
     
     $client = new Client(['timeout' => 300000]);
-    $response = $client->post('http://192.168.200.11:8004/api/reports/crystal/sales/generator?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJleHAiOjIwNTc3MjQ3NDd9.0F5ZFHigMNt732EHIFd7azram_PWHIC5RGkkz8wqEz8&type='.$type, [
+    $response = $client->post('http://192.168.200.11:8004/api/reports/crystal/sales/generator?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJleHAiOjIwNTc3MjQ3NDd9.0F5ZFHigMNt732EHIFd7azram_PWHIC5RGkkz8wqEz8&b='.$branch.'&type='.$type, [
         'headers' => ['Content-Type' => 'application/json'],
         'body' => json_encode($reports),
     ]);
@@ -511,6 +512,38 @@ class SalesEmployeeController extends Controller
    public function getGraph(request $req){
     return DB::table('branches')->where('id', \Auth::User()->branch_id)->pluck('graph')->first();
    }
+
+   public function approvedproductbonus(request $req){
+        $startDate = $req->start_date;
+        $endDate =  $req->end_date;
+        $track_id = $req->branch.$startDate.$endDate;
+        $check = DB::table('reports_temp')
+                 ->where('track_id', $track_id)
+                 ->pluck('json_data')
+                 ->first();
+        $response = $this->generateReports( json_decode($check), 5, $req->branch);
+    
+        if (isset($response['download_url'])) {
+            $downloadUrl = $response['download_url']; 
+            $filename = $response['filename'];
+        }
+        DB::table('reports_temp')->where('track_id',$track_id)->update(['branch'=> $req->branch,'docname'=> $filename,'url'=>  $downloadUrl, 'status'=> 1  ]);
+        return $downloadUrl;
+   }
+   public function checkbonus(request $req){
+        $startDate = $req->start_date;
+        $endDate =  $req->end_date;
+        $track_id = $req->branch.$startDate.$endDate;
+        $d = DB::table('reports_temp')->where('track_id', $track_id)->where('status', 1)->select('docname')->get();
+        return count($d);
+   }
+   public function getbonus(request $req){
+   
+    $branch = \Auth::user()->branch_id;
+    $v = DB::table('branches')->where('id', $branch )->pluck('name')->first();
+    $d = DB::table('reports_temp')->where('branch', $v)->where('status', 1)->select('branch','url','docname','as_of_date')->get();
+    return $d;
+}
    public function createuser(request $req){
 
       $user = DB::table('sales_queries')

@@ -347,11 +347,15 @@ Route::get('/queries/customers/account', 'SapApiController@queries');
 Route::get('/sales/smi/index', 'SalesEmployeeController@index');
 Route::get('/sales/smi/', 'SalesEmployeeController@sync');
 Route::get('/sales/smi/generator', 'SalesEmployeeController@generator_master');
+Route::get('/sales/smi/approved', 'SalesEmployeeController@approvedproductbonus');
+Route::get('/sales/smi/check', 'SalesEmployeeController@checkbonus');
+Route::get('/sales/smi/getbonus', 'SalesEmployeeController@getbonus');
 Route::get('/sales/smi/branch', 'SalesEmployeeController@branch');
 Route::get('/sales/smi/items', 'SalesEmployeeController@ItemMaintenance');
 Route::post('/sales/smi/upload-product-bonus', 'SalesEmployeeController@upload');
 Route::get('/sales/smi/sale/list', 'SalesEmployeeController@salelist');
 Route::get('/sales/smi/sale/generate', 'SalesEmployeeController@generateReports');
+ 
 
 Route::get('/sales/smi/dashboard/generate', 'SalesEmployeeController@dashboardgraph');
 Route::get('/sales/smi/graph', 'SalesEmployeeController@getGraph');
