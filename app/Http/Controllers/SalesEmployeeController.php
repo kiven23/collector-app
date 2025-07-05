@@ -19,7 +19,7 @@ class SalesEmployeeController extends Controller
     
    public function sync(){
         
-        #DB::table('sales_queries')->truncate();
+        DB::table('sales_queries')->truncate();
         DB::table('product_maintenances')->truncate();
         DB::table('sales_employees')->truncate();
         function importQuery($data){
@@ -43,6 +43,7 @@ class SalesEmployeeController extends Controller
                 $new->Quota = $data->Quota;
                 $new->BQuota = $data->BQuota;
                 $new->Position = $data->Position;
+                $new->PayType = $data->PayType;
                 $new->save();
         }
         function importEmployee($data){
@@ -64,17 +65,17 @@ class SalesEmployeeController extends Controller
             $product->save();
             
         }
-    // $client = new Client(['timeout' => 9999999]);
-    // $response = $client->get('http://192.168.1.19:7771/api/branches/public/salesemployee', [
+    $client = new Client(['timeout' => 9999999]);
+    $response = $client->get('http://192.168.1.19:7771/api/branches/public/salesemployee', [
       
-    //     'headers' => ['Accept' => 'application/json'],
-    // ]);
-    // $body = $response->getBody();
-    // $data = json_decode($body);
-    // foreach($data as $data2){
-    //     importQuery($data2);
-    // }
-    // return "d";
+        'headers' => ['Accept' => 'application/json'],
+    ]);
+    $body = $response->getBody();
+    $data = json_decode($body);
+    foreach($data as $data2){
+        importQuery($data2);
+    }
+ 
     $getData = DB::table('sales_queries')
             ->select('PromoName', DB::raw('MIN(Branch) as Branch'), DB::raw('MIN(Position) as Position'), DB::raw('MIN(DateHired) as DateHired'), DB::raw('MIN(Brand) as Brand'), DB::raw('MIN(Salesman) as Salesman'))
             ->groupBy('PromoName')
@@ -409,18 +410,23 @@ class SalesEmployeeController extends Controller
                 return '';
             }
           }
-          private   function searchItemBonus($item){
+           
+        private   function searchItemBonus($item, $type){
             $amount = DB::table('product_maintenances')->where('model', $item)->pluck('product_bonus')->first();
-            return floatval($amount);
-          }
-          private   function get_product_bonus($master){
-            
-            $sum = [];
-            foreach($master as $q){
-                  $sum[] = $this->searchItemBonus($q->ItemName);
+            $value = 0;
+            if( $type == 'CHARGE'){
+                $value = 50;
             }
-            return  array_sum($sum);
-          }
+            return floatval($amount + $value);
+        }
+        private   function get_product_bonus($master){
+
+        $sum = [];
+        foreach($master as $q){
+        $sum[] = $this->searchItemBonus($q->ItemName,$q->PayType);
+        }
+        return  array_sum($sum);
+        }
    private function graph($branch, $controllerInstance) {
     $startDate = Carbon::parse('2025-01-01');
     $endDate = Carbon::now();
