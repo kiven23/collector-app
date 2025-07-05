@@ -527,7 +527,7 @@ class SalesEmployeeController extends Controller
             $downloadUrl = $response['download_url']; 
             $filename = $response['filename'];
         }
-        DB::table('reports_temp')->where('track_id',$track_id)->update(['branch'=> $req->branch,'docname'=> $filename,'url'=>  $downloadUrl, 'status'=> 1  ]);
+        DB::table('reports_temp')->where('track_id',$track_id)->update(['as_of_date'=> $startDate.'/'.$endDate,'branch'=> $req->branch,'docname'=> $filename,'url'=>  $downloadUrl, 'status'=> 1  ]);
         return $downloadUrl;
    }
    public function checkbonus(request $req){
@@ -541,8 +541,21 @@ class SalesEmployeeController extends Controller
    
     $branch = \Auth::user()->branch_id;
     $v = DB::table('branches')->where('id', $branch )->pluck('name')->first();
-    $d = DB::table('reports_temp')->where('branch', $v)->where('status', 1)->select('branch','url','docname','as_of_date')->get();
+    #  if (\Auth::user()->hasRole(['Super Admin', 'Sales Admin'])) {
+#  $v = DB::table('branches')->pluck('name')->first();   
+#}else{
+$v = DB::table('branches')->where('id', $branch )->pluck('name')->first();
+#}
+if (\Auth::user()->hasRole(['Super Admin', 'Sales Admin'])) {
+$d = DB::table('reports_temp')->where('status', 1)->select('branch','url','docname','as_of_date')->get();
     return $d;
+
+}else{
+$d = DB::table('reports_temp')->where('branch', $v)->where('status', 1)->select('branch','url','docname','as_of_date')->get();
+    return $d;
+
+}   
+ 
 }
    public function createuser(request $req){
 
