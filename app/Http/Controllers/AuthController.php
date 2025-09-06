@@ -594,15 +594,23 @@ class AuthController extends Controller
           ]
         ];
      }
-     if (\Auth::user()->hasRole(['Super Admin','Sales Branches Access','Sales Admin'])) {
-     $salessmi = [
-      'text' => 'Sales SMI',
-      'icon' => 'account_circle',
-      'route' => '/sales/smi/',
-    ];
+     if (\Auth::user()->hasRole(['Super Admin'])) {
+        $collection = [
+          'text' => 'Collection',
+          'icon' => 'account_circle',
+          'route' => '/collection/index/',
+        ];
      }
+      if (\Auth::user()->hasRole(['Super Admin'])) {
+        $collected = [
+          'text' => 'Collected',
+          'icon' => 'account_circle',
+          'route' => '/collection/collected/',
+        ];
+      }
+  
     //@$creditsmart
-    array_push($permission, @$Administrative,  @$settings, @$salessmi);
+    array_push($permission, @$Administrative,  @$settings, @$collection,@$collected)  ;
 
     return array_filter($permission);
   }

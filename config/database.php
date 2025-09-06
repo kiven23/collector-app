@@ -11,9 +11,9 @@ $connections = [
         'driver' => 'mysql',
         'host' => 'localhost',
         'port' => '3306',
-        'database' => 'salesedge',
+        'database' => 'collector_app',
         'username' => 'root',
-        'password' => 'M15@2dwin0n7y',
+        'password' => 'crawling23',
        
         'unix_socket' => env('DB_SOCKET', ''),
         'charset' => 'utf8mb4',
