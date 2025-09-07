@@ -342,4 +342,8 @@ Route::post('/database/testdb', 'DatabaseSelectionController@testDB')->name('sap
 });
 
  
-Route::get('/collection/queries/index', 'CollectionQueriesController@index');
+Route::get('/collection/queries/sync', 'CollectionQueriesController@sync');
+Route::get('/collection/queries/sync_schedule', 'CollectionQueriesController@sync_schedule');
+ 
+Route::get('/collection/schedule/index', 'CollectionQueriesController@schedule_index');
+Route::post('/collection/schedule/set', 'CollectionQueriesController@schedule_set');

@@ -22,6 +22,7 @@ class CreateCollectionSchedulesTable extends Migration
             $table->string('CollectorCode');
             $table->string('CollectorName');
             $table->string('MapID');
+            $table->string('status');
             $table->timestamps();
         });
     }

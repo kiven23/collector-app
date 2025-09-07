@@ -180,9 +180,9 @@ class ComposerStaticInit2fcb4208c5ab45db43bd1de49b74ae3b
     public static $prefixDirsPsr4 = array (
         'phpDocumentor\\Reflection\\' => 
         array (
-            0 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
-            1 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
-            2 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
+            0 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
+            1 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
+            2 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
         ),
         'ZipStream\\' => 
         array (
@@ -190,8 +190,8 @@ class ComposerStaticInit2fcb4208c5ab45db43bd1de49b74ae3b
         ),
         'Yajra\\DataTables\\' => 
         array (
-            0 => __DIR__ . '/..' . '/yajra/laravel-datatables-editor/src',
-            1 => __DIR__ . '/..' . '/yajra/laravel-datatables-buttons/src',
+            0 => __DIR__ . '/..' . '/yajra/laravel-datatables-buttons/src',
+            1 => __DIR__ . '/..' . '/yajra/laravel-datatables-editor/src',
             2 => __DIR__ . '/..' . '/yajra/laravel-datatables-html/src',
             3 => __DIR__ . '/..' . '/yajra/laravel-datatables-oracle/src',
         ),
@@ -546,6 +546,10 @@ class ComposerStaticInit2fcb4208c5ab45db43bd1de49b74ae3b
         'App\\BlackListed' => __DIR__ . '/../..' . '/app/BlackListed.php',
         'App\\Branch' => __DIR__ . '/../..' . '/app/Branch.php',
         'App\\BranchSchedule' => __DIR__ . '/../..' . '/app/BranchSchedule.php',
+        'App\\CollectionPayment' => __DIR__ . '/../..' . '/app/CollectionPayment.php',
+        'App\\CollectionQueries' => __DIR__ . '/../..' . '/app/CollectionQueries.php',
+        'App\\CollectionSchedule' => __DIR__ . '/../..' . '/app/CollectionSchedule.php',
+        'App\\CollectionTracking' => __DIR__ . '/../..' . '/app/CollectionTracking.php',
         'App\\Company' => __DIR__ . '/../..' . '/app/Company.php',
         'App\\ComputerwareTicket' => __DIR__ . '/../..' . '/app/ComputerwareTicket.php',
         'App\\Concern' => __DIR__ . '/../..' . '/app/Concern.php',
@@ -591,6 +595,10 @@ class ComposerStaticInit2fcb4208c5ab45db43bd1de49b74ae3b
         'App\\Http\\Controllers\\BranchReportController' => __DIR__ . '/../..' . '/app/Http/Controllers/BranchReportController.php',
         'App\\Http\\Controllers\\BranchScheduleController' => __DIR__ . '/../..' . '/app/Http/Controllers/BranchScheduleController.php',
         'App\\Http\\Controllers\\ClientController' => __DIR__ . '/../..' . '/app/Http/Controllers/ClientController.php',
+        'App\\Http\\Controllers\\CollectionPaymentController' => __DIR__ . '/../..' . '/app/Http/Controllers/CollectionPaymentController.php',
+        'App\\Http\\Controllers\\CollectionQueriesController' => __DIR__ . '/../..' . '/app/Http/Controllers/CollectionQueriesController.php',
+        'App\\Http\\Controllers\\CollectionScheduleController' => __DIR__ . '/../..' . '/app/Http/Controllers/CollectionScheduleController.php',
+        'App\\Http\\Controllers\\CollectionTrackingController' => __DIR__ . '/../..' . '/app/Http/Controllers/CollectionTrackingController.php',
         'App\\Http\\Controllers\\CompanyController' => __DIR__ . '/../..' . '/app/Http/Controllers/CompanyController.php',
         'App\\Http\\Controllers\\ComputerwareTicketController' => __DIR__ . '/../..' . '/app/Http/Controllers/ComputerwareTicketController.php',
         'App\\Http\\Controllers\\ConcernCategoryController' => __DIR__ . '/../..' . '/app/Http/Controllers/ConcernCategoryController.php',
@@ -645,6 +653,7 @@ class ComposerStaticInit2fcb4208c5ab45db43bd1de49b74ae3b
         'App\\Http\\Controllers\\RevolvingFundController' => __DIR__ . '/../..' . '/app/Http/Controllers/RevolvingFundController.php',
         'App\\Http\\Controllers\\RoleController' => __DIR__ . '/../..' . '/app/Http/Controllers/RoleController.php',
         'App\\Http\\Controllers\\SalesEmployeeController' => __DIR__ . '/../..' . '/app/Http/Controllers/SalesEmployeeController.php',
+        'App\\Http\\Controllers\\SalesQueriesController' => __DIR__ . '/../..' . '/app/Http/Controllers/SalesQueriesController.php',
         'App\\Http\\Controllers\\SapApiController' => __DIR__ . '/../..' . '/app/Http/Controllers/SapApiController.php',
         'App\\Http\\Controllers\\SapRportsController' => __DIR__ . '/../..' . '/app/Http/Controllers/SapRportsController.php',
         'App\\Http\\Controllers\\SeenController' => __DIR__ . '/../..' . '/app/Http/Controllers/SeenController.php',
@@ -705,6 +714,7 @@ class ComposerStaticInit2fcb4208c5ab45db43bd1de49b74ae3b
         'App\\Http\\Middleware\\RegionClearance' => __DIR__ . '/../..' . '/app/Http/Middleware/RegionClearance.php',
         'App\\Http\\Middleware\\ReportClearance' => __DIR__ . '/../..' . '/app/Http/Middleware/ReportClearance.php',
         'App\\Http\\Middleware\\RoleClearance' => __DIR__ . '/../..' . '/app/Http/Middleware/RoleClearance.php',
+        'App\\Http\\Middleware\\SalesEdge' => __DIR__ . '/../..' . '/app/Http/Middleware/SalesEdge.php',
         'App\\Http\\Middleware\\SapApi' => __DIR__ . '/../..' . '/app/Http/Middleware/SapApi.php',
         'App\\Http\\Middleware\\ServiceCategoryClearance' => __DIR__ . '/../..' . '/app/Http/Middleware/ServiceCategoryClearance.php',
         'App\\Http\\Middleware\\ServiceProviderClearance' => __DIR__ . '/../..' . '/app/Http/Middleware/ServiceProviderClearance.php',

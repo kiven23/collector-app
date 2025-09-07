@@ -3,7 +3,7 @@
         'name' => 'laravel/webportal',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => 'ea5a067b4b0c70b4a857fa4f0a12e6e5e961d0bb',
+        'reference' => '6ece76cd3f5e24ee5ab22f7ef5ef4a89728684cf',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -478,7 +478,7 @@
         'laravel/webportal' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => 'ea5a067b4b0c70b4a857fa4f0a12e6e5e961d0bb',
+            'reference' => '6ece76cd3f5e24ee5ab22f7ef5ef4a89728684cf',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
