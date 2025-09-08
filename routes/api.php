@@ -347,3 +347,11 @@ Route::get('/collection/queries/sync_schedule', 'CollectionQueriesController@syn
  
 Route::get('/collection/schedule/index', 'CollectionQueriesController@schedule_index');
 Route::post('/collection/schedule/set', 'CollectionQueriesController@schedule_set');
+Route::post('/collection/payment/set', 'CollectionQueriesController@payment_store');
+Route::get('/collection/collected/payments', 'CollectionQueriesController@collected_payments_index');
+Route::get('/collection/scheduled/today', 'CollectionQueriesController@scheduled_today');
+
+Route::post('/collection/arrived/set', 'CollectionQueriesController@gpstrack');
+
+ 
+Route::get('/collection/track/get', 'CollectionQueriesController@getTrack');

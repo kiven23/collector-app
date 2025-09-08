@@ -67,9 +67,9 @@ class CollectionQueriesController extends Controller
        $collection =  DB::table('collection_queries')->get();
          foreach($collection as $item){
             $data = [
-                'CardCode'=> $item['CardCode'],
-                'RefDate'=> $item['RefDate'],
-                'DocNum'=> $item['DocNum']
+                'CardCode'=> $item->CardCode,
+                'RefDate'=> $item->RefDate,
+                'DocNum'=> $item->DocNum
             ];
             $string = json_encode($data);
             // Step 2: Hash it with SHA256
@@ -93,9 +93,34 @@ class CollectionQueriesController extends Controller
 
     public function schedule_index(request $req){
         $user = \Auth::user()->branch->name;
-        $collection = DB::table('collection_schedules')->where('Branch', 'like', '%'.$user.'%')->get();
+        $perPage = $req->get('per_page', 10); // Default 10 items per page
+        $page = $req->get('page', 1); // Default page 1
+        $search = $req->get('search', ''); // Search parameter
+
+        $query = DB::table('collection_schedules')
+                ->where('Branch', 'like', '%'.$user.'%')
+                ->where(function ($query) {
+                    $query->whereNull('user_id')
+                        ->orWhere('user_id', \Auth::id());
+                });
+
+        // Apply search filter if provided
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('CardName', 'like', '%'.$search.'%')
+                  ->orWhere('CardCode', 'like', '%'.$search.'%')
+                  ->orWhere('Branch', 'like', '%'.$search.'%');
+            });
+        }
+
+        $collection = $query->paginate($perPage, ['*'], 'page', $page);
+
         return response()->json([
-            'data' => $collection
+            'data' => $collection->items(),
+            'current_page' => $collection->currentPage(),
+            'last_page' => $collection->lastPage(),
+            'per_page' => $collection->perPage(),
+            'total' => $collection->total()
         ]);
     }
     public function schedule_set(request $req){
@@ -110,25 +135,170 @@ class CollectionQueriesController extends Controller
         return response()->json([
             'data' => 'done'
         ]);
-         
-       
     }
     public function payment_store(request $req){
+         
+        function getMapInfo($mapid, $pluck){
+            return DB::table('collection_schedules')->where('MapID',$mapid)->pluck($pluck);
+        }
+        function checkAmount($mapID,$newAmt){
+            // Get the current OverDueAmt for the given MapID
+            $checkOldAmount = DB::table('collection_schedules')
+                ->where('MapID', $mapID)
+                ->value('OverDueAmt'); // mas safe kaysa pluck()->first()
+            // Handle case kung walang nahanap
+            if ($checkOldAmount === null) {
+                throw new \Exception("MapID not found.");
+            }
+            // Ensure numeric values
+            $old = floatval($checkOldAmount);
+            $new = floatval($newAmt);
+            // Compute remaining balance
+            $sum = $old - $new;
+            // Prevent negative balance
+            if ($sum < 0) {
+                throw new \Exception("Payment amount exceeds overdue amount.");
+            }
+            return $sum;
+        }
         DB::table('collection_payments')->insert([
-            'MapID' => $req->CardCode,
-            'CardName' => $req->CardName,
-            'Amount'   => $req->Amount,
-            'Remarks'  => $req->Remarks,
-            'user_id'  => \Auth::user()->id,
+            'MapID' => $req->MapID,
+            'CustomerName' => getMapInfo($req->MapID, 'CardName')->first(),
+            'CollectedAmount' => $req->CollectedAmount	,
+            'Remarks'  => 'COLLECTED BY THE SYSTEM',
+            'CollectedBy'  => \Auth::user()->id,
+            'signature'  => $req->Signature,
             'created_at' => now(),
             'updated_at' => now()
         ]);
-        DB::table('collection_schedules')->where('CardCode', $req->CardCode)->update([
-            'status' => 'Paid',
+        DB::table('collection_schedules')
+            ->where('MapID', $req->MapID)
+            ->update([
+            'status' => 'Collected',
+            'arrived' => true,
+            'OverDueAmt'=> checkAmount($req->MapID, $req->CollectedAmount),
             'updated_at' => now()
         ]);
+        $returnData = DB::table('collection_payments')->where('MapID', $req->MapID)->first();
         return response()->json([
-            'data' => 'done'
+            'data' =>  $returnData
         ]);
     }
+
+    public function collected_payments_index(request $req){
+        try {
+            $user = \Auth::user();
+            $branchFilter = '';
+
+            if ($user && $user->branch) {
+                $branchName = $user->branch->name;
+                $branchFilter = $branchName;
+                \Log::info('User branch:', ['user_id' => $user->id, 'branch' => $branchName]);
+            } else {
+                \Log::info('No authenticated user or no branch, showing all payments');
+            }
+
+            $perPage = $req->get('per_page', 10);
+            $page = $req->get('page', 1);
+
+            $query = DB::table('collection_payments')
+                ->join('collection_schedules', 'collection_payments.MapID', '=', 'collection_schedules.MapID')
+                ->whereIn('collection_schedules.status', ['Collected', 'Posted'])
+                ->select(
+                    'collection_payments.id',
+                    'collection_payments.MapID',
+                    'collection_payments.CustomerName',
+                    'collection_payments.CollectedAmount',
+                    'collection_payments.Remarks',
+                    'collection_payments.signature',
+                    'collection_payments.created_at',
+                    'collection_payments.updated_at',
+                    'collection_schedules.CardCode',
+                    'collection_schedules.CardName',
+                    'collection_schedules.Branch',
+                    'collection_schedules.status',
+                    'collection_schedules.OverDueAmt'
+                )
+                ->orderBy('collection_payments.created_at', 'desc');
+
+            // Apply branch filter only if user has a branch
+            if (!empty($branchFilter)) {
+                $query->where('collection_schedules.Branch', 'like', '%'.$branchFilter.'%');
+            }
+
+            $payments = $query->paginate($perPage, ['*'], 'page', $page);
+
+            \Log::info('Collected payments query result:', [
+                'total' => $payments->total(),
+                'count' => $payments->count(),
+                'data_count' => count($payments->items())
+            ]);
+
+            return response()->json([
+                'data' => $payments->items(),
+                'current_page' => $payments->currentPage(),
+                'last_page' => $payments->lastPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total()
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in collected_payments_index:', ['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function gpstrack(request $req){
+        $data = $req->data;
+        DB::table('collection_trackings')->insert([
+            'MapID'=>  $data['mapid'],
+            'Latitude'=>   $data['Latitude'],
+            'Longitude'=>   $data['Longitude'],
+        ]);
+        DB::table('collection_schedules')->where('MapID',  $data['mapid'])->update([
+            'arrived'=>  true,
+        ]);
+        return response()->json([
+            'data' => 'ok'
+        ]);
+    }
+    public function getTrack(request $req){
+
+        $data = DB::table('collection_trackings')->where('mapid', $req->mapid)->get();
+        return response()->json($data);
+    }
+
+    public function scheduled_today(request $req){
+        try {
+            $user = \Auth::user();
+            $branchFilter = '';
+
+            if ($user && $user->branch) {
+                $branchName = $user->branch->name;
+                $branchFilter = $branchName;
+            }
+
+            $query = DB::table('collection_schedules')
+                ->where('status', 'Scheduled')
+                ->where(function ($query) {
+                    $query->whereNull('user_id')
+                        ->orWhere('user_id', \Auth::id());
+                });
+
+            // Apply branch filter only if user has a branch
+            if (!empty($branchFilter)) {
+                $query->where('Branch', 'like', '%'.$branchFilter.'%');
+            }
+
+            $scheduledCustomers = $query->get();
+
+            return response()->json([
+                'data' => $scheduledCustomers
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in scheduled_today:', ['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
 }
