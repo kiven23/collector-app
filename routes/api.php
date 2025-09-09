@@ -354,6 +354,8 @@ Route::get('/collection/scheduled/today', 'CollectionQueriesController@scheduled
 Route::post('/collection/arrived/set', 'CollectionQueriesController@gpstrack');
 
 Route::get('/collection/kpis', 'CollectionQueriesController@kpis');
+Route::get('/collection/chart-data', 'CollectionQueriesController@chart_data');
+Route::post('/collection/payment/posted', 'CollectionQueriesController@updatePaymentStatus');
 
 Route::get('/collection/track/get', 'CollectionQueriesController@getTrack');
 Route::get('/collection/payment/receipt', 'CollectionQueriesController@collectedPayment');

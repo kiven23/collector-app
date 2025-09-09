@@ -596,15 +596,15 @@ class AuthController extends Controller
      }
      if (\Auth::user()->hasRole(['Super Admin'])) {
         $collection = [
-          'text' => 'Collection',
-          'icon' => 'account_circle',
+          'text' => 'Dashboard',
+          'icon' => 'mdi-view-dashboard',
           'route' => '/collection/index/',
         ];
      }
       if (\Auth::user()->hasRole(['Super Admin'])) {
         $collected = [
           'text' => 'Collected',
-          'icon' => 'account_circle',
+          'icon' => 'mdi-check-circle-outline',
           'route' => '/collection/collected/',
         ];
       }

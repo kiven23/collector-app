@@ -303,38 +303,143 @@ class CollectionQueriesController extends Controller
     }
 
     public function kpis(request $req){
-            try {
-                $user = \Auth::user();
-                $branchFilter = '';
-    
-                if ($user && $user->branch) {
-                    $branchName = $user->branch->name;
-                    $branchFilter = $branchName;
-                }
-    
-                $query = DB::table('collection_schedules');
-    
-                // Apply branch filter only if user has a branch
-                if (!empty($branchFilter)) {
-                    $query->where('Branch', 'like', '%'.$branchFilter.'%');
-                }
-    
-                $totalAccounts = $query->count();
-    
-                $overdueAccounts = $query->where('OverDueAmt', '>', 0)->count();
-    
-                $amountToCollect = $query->where('OverDueAmt', '>', 0)->sum('OverDueAmt');
-    
-                return response()->json([
-                    'total_accounts' => $totalAccounts,
-                    'overdue_accounts' => $overdueAccounts,
-                    'amount_to_collect' => $amountToCollect
-                ]);
-            } catch (\Exception $e) {
-                \Log::error('Error in kpis:', ['error' => $e->getMessage()]);
-                return response()->json(['error' => $e->getMessage()], 500);
+        try {
+            $user = \Auth::user();
+            $branchFilter = '';
+
+            if ($user && $user->branch) {
+                $branchName = $user->branch->name;
+                $branchFilter = $branchName;
             }
+
+            $query = DB::table('collection_schedules');
+
+            // Apply branch filter only if user has a branch
+            if (!empty($branchFilter)) {
+                $query->where('Branch', 'like', '%'.$branchFilter.'%');
+            }
+
+            $totalAccounts = $query->count();
+
+            $overdueAccounts = $query->where('OverDueAmt', '>', 0)->count();
+
+            $amountToCollect = $query->where('OverDueAmt', '>', 0)->sum('OverDueAmt');
+
+            return response()->json([
+                'total_accounts' => $totalAccounts,
+                'overdue_accounts' => $overdueAccounts,
+                'amount_to_collect' => $amountToCollect
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in kpis:', ['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function chart_data(request $req){ 
+        try {
+            $user = \Auth::user();
+            $branchFilter = '';
+        
+            if ($user && $user->branch) {
+                $branchName = $user->branch->name;
+                $branchFilter = $branchName;
+            }
+        
+            // Helper function para makabuo ng base query
+            $baseQuery = function () use ($branchFilter) {
+                $q = DB::table('collection_schedules');
+                if (!empty($branchFilter)) {
+                    $q->where('Branch', 'like', '%' . $branchFilter . '%');
+                }
+                return $q;
+            };
+        
+            // Status distribution
+            $statusData = $baseQuery()
+                ->select('status', DB::raw('COUNT(*) as count'))
+                ->groupBy('status')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'status' => $item->status,
+                        'count' => (int) $item->count,
+                    ];
+                });
+        
+            // Monthly collection trends (last 6 months)
+            $monthlyData = DB::table('collection_payments')
+                ->select(
+                    DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                    DB::raw('SUM(CollectedAmount) as total')
+                )
+                ->where('created_at', '>=', now()->subMonths(6))
+                ->groupBy(DB::raw('DATE_FORMAT(created_at, "%Y-%m")'))
+                ->orderBy('month')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'month' => $item->month,
+                        'total' => (float) $item->total,
+                    ];
+                });
+        
+            // Top overdue accounts
+            $topOverdue = $baseQuery()
+                ->where('OverDueAmt', '>', 0)
+                ->orderBy('OverDueAmt', 'desc')
+                ->limit(5)
+                ->select('id', 'CardName', 'OverDueAmt', 'Branch', 'CardCode')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'CardName' => $item->CardName,
+                        'OverDueAmt' => (float) $item->OverDueAmt,
+                        'Branch' => $item->Branch,
+                        'CardCode' => $item->CardCode,
+                    ];
+                });
+        
+            // Collection efficiency by branch
+            $branchEfficiency = $baseQuery()
+                ->select(
+                    'Branch',
+                    DB::raw('COUNT(*) as total_accounts'),
+                    DB::raw('SUM(CASE WHEN status IN ("Collected", "Posted") THEN 1 ELSE 0 END) as completed_count')
+                )
+                ->groupBy('Branch')
+                ->get()
+                ->map(function ($item) {
+                    $total = (int) $item->total_accounts;
+                    $completed = (int) $item->completed_count;
+                    return [
+                        'Branch' => $item->Branch,
+                        'total_accounts' => $total,
+                        'completed_count' => $completed,
+                        'efficiency' => $total > 0 ? round(($completed / $total) * 100, 1) : 0,
+                    ];
+                });
+        
+            return response()->json([
+                'status_distribution' => $statusData,
+                'monthly_trends' => $monthlyData,
+                'top_overdue' => $topOverdue,
+                'branch_efficiency' => $branchEfficiency,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in chart_data:', [
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+            return response()->json([
+                'error' => 'Database query error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+        
+    }
      
        private function getPaymentCollection($mapid){
             $user = \Auth::user();
@@ -357,7 +462,29 @@ class CollectionQueriesController extends Controller
             return $returnData;
        }
        public function collectedPayment(request $req){
-        return response()->json($this->getPaymentCollection($req->mapid));
-        }
+       return response()->json($this->getPaymentCollection($req->mapid));
+       }
+
+       public function updatePaymentStatus(request $req){
+           try {
+               DB::table('collection_schedules')
+                   ->where('MapID', $req->mapid)
+                   ->update([
+                       'status' => 'Posted',
+                       'updated_at' => now()
+                   ]);
+
+               return response()->json([
+                   'message' => 'Payment status updated to Posted successfully',
+                   'status' => 'success'
+               ]);
+           } catch (\Exception $e) {
+               \Log::error('Error updating payment status:', ['error' => $e->getMessage()]);
+               return response()->json([
+                   'error' => 'Failed to update payment status',
+                   'message' => $e->getMessage()
+               ], 500);
+           }
+       }
     }
 
