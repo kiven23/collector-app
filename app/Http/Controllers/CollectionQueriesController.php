@@ -102,7 +102,7 @@ class CollectionQueriesController extends Controller
                 ->where(function ($query) {
                     $query->whereNull('user_id')
                         ->orWhere('user_id', \Auth::id());
-                });
+                }) ->Where('status','Pending');
 
         // Apply search filter if provided
         if (!empty($search)) {
@@ -136,11 +136,13 @@ class CollectionQueriesController extends Controller
             'data' => 'done'
         ]);
     }
+    private function getMapInfo($mapid, $pluck){
+        return DB::table('collection_schedules')->where('MapID',$mapid)->pluck($pluck);
+    }
+    
     public function payment_store(request $req){
          
-        function getMapInfo($mapid, $pluck){
-            return DB::table('collection_schedules')->where('MapID',$mapid)->pluck($pluck);
-        }
+         
         function checkAmount($mapID,$newAmt){
             // Get the current OverDueAmt for the given MapID
             $checkOldAmount = DB::table('collection_schedules')
@@ -163,7 +165,7 @@ class CollectionQueriesController extends Controller
         }
         DB::table('collection_payments')->insert([
             'MapID' => $req->MapID,
-            'CustomerName' => getMapInfo($req->MapID, 'CardName')->first(),
+            'CustomerName' => $this->getMapInfo($req->MapID, 'CardName')->first(),
             'CollectedAmount' => $req->CollectedAmount	,
             'Remarks'  => 'COLLECTED BY THE SYSTEM',
             'CollectedBy'  => \Auth::user()->id,
@@ -179,7 +181,7 @@ class CollectionQueriesController extends Controller
             'OverDueAmt'=> checkAmount($req->MapID, $req->CollectedAmount),
             'updated_at' => now()
         ]);
-        $returnData = DB::table('collection_payments')->where('MapID', $req->MapID)->first();
+        $returnData =  $this->getPaymentCollection($req->MapID);
         return response()->json([
             'data' =>  $returnData
         ]);
@@ -300,5 +302,62 @@ class CollectionQueriesController extends Controller
         }
     }
 
+    public function kpis(request $req){
+            try {
+                $user = \Auth::user();
+                $branchFilter = '';
+    
+                if ($user && $user->branch) {
+                    $branchName = $user->branch->name;
+                    $branchFilter = $branchName;
+                }
+    
+                $query = DB::table('collection_schedules');
+    
+                // Apply branch filter only if user has a branch
+                if (!empty($branchFilter)) {
+                    $query->where('Branch', 'like', '%'.$branchFilter.'%');
+                }
+    
+                $totalAccounts = $query->count();
+    
+                $overdueAccounts = $query->where('OverDueAmt', '>', 0)->count();
+    
+                $amountToCollect = $query->where('OverDueAmt', '>', 0)->sum('OverDueAmt');
+    
+                return response()->json([
+                    'total_accounts' => $totalAccounts,
+                    'overdue_accounts' => $overdueAccounts,
+                    'amount_to_collect' => $amountToCollect
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Error in kpis:', ['error' => $e->getMessage()]);
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+        }
+     
+       private function getPaymentCollection($mapid){
+            $user = \Auth::user();
+            $branchName = $user->branch->name;
+            $returnData = DB::table('collection_payments')
+                ->where('MapID', $mapid)
+                ->first();
+            $firstname = DB::table('users')
+                    ->where('id', $this->getMapInfo($mapid, 'user_id')->first())
+                    ->pluck('first_name')
+                    ->first();
+            $lastname = DB::table('users')
+                    ->where('id', $this->getMapInfo($mapid, 'user_id')->first())
+                    ->pluck('last_name')
+                    ->first();
+            $returnData->collectedby = $lastname.', '.$firstname;
+            $formattedId = str_pad($returnData->id, 6, '0', STR_PAD_LEFT);
+            $code = $branchName . '-' . $formattedId;
+            $returnData->ornumber = $code;
+            return $returnData;
+       }
+       public function collectedPayment(request $req){
+        return response()->json($this->getPaymentCollection($req->mapid));
+        }
+    }
 
-}
